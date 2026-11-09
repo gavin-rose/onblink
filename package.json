@@ -1,0 +1,21 @@
+{
+  "name": "onblink",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "build": "esbuild renderer.js --bundle --outfile=dist/renderer.bundle.js --platform=browser --format=iife --log-level=warning && esbuild preload.js --bundle --outfile=dist/preload.bundle.js --platform=node --external:electron --log-level=warning",
+    "start": "npm run build && electron .",
+    "package": "npm run build && electron-packager . OnBlink --platform=darwin --icon=assets/icon.icns --out=release --overwrite --no-asar --app-bundle-id=dev.onblink.app --ignore=^/research --ignore=^/release --ignore=^/\\.env$ --ignore=^/assets/icon\\.svg$ --ignore=^/README\\.md$ --ignore=node-sdk-linux- --ignore=node-sdk-win32-"
+  },
+  "dependencies": {
+    "@smartspectra/node-sdk": "3.4.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.4.4",
+    "electron": "43.2.0",
+    "esbuild": "^0.25.0"
+  },
+  "license": "MIT",
+  "productName": "OnBlink"
+}

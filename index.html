@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:; img-src 'self' blob: data:;">
+    <title>OnBlink</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header>
+        <h1>OnBlink</h1>
+        <nav class="tabs">
+            <button class="tab active" data-view="use">Use</button>
+            <button class="tab" data-view="actions">Settings</button>
+        </nav>
+        <div class="header-right">
+            <button id="btn-tour" class="link-btn">Tutorial</button>
+            <span id="status" class="badge">Idle</span>
+        </div>
+    </header>
+
+    <div id="error" class="error" hidden></div>
+
+    <main id="view-use" class="view use">
+        <section class="left">
+            <div class="stage">
+                <video id="preview" autoplay playsinline muted></video>
+                <div id="guide" class="guide" hidden></div>
+                <div id="setup" class="setup" hidden>
+                    <div id="setup-text" class="setup-text">Getting the camera ready...</div>
+                    <div class="setup-bar"><div id="setup-progress"></div></div>
+                </div>
+                <div id="hint" class="hint">Press Start, then look at the camera.</div>
+            </div>
+            <div class="controls">
+                <button id="btn-start" class="primary">Start</button>
+                <button id="btn-stop" disabled>Stop</button>
+                <span id="countdown" class="countdown"></span>
+            </div>
+            <p class="disclaimer">OnBlink is a communication aid, not a medical device. Heart rate is an estimate from the camera and check-ins are only an offer to talk. They are not a health assessment and should not be used for medical decisions or emergencies.</p>
+        </section>
+
+        <section class="right">
+            <div class="card">
+                <div class="eye-row">
+                    <div id="eye-state" class="eye-state">Not running</div>
+                    <div class="hold"><div id="hold-bar"></div></div>
+                    <div class="pulse-row">
+                        <span id="hr" class="hr">Heart rate -</span>
+                        <span id="checkin-state" class="checkin-state">Check-ins off</span>
+                    </div>
+                    <div id="last-event" class="last-event"></div>
+                </div>
+            </div>
+            <div id="practice" class="practice" hidden></div>
+            <div class="card grow">
+                <div id="menu-title" class="menu-title" hidden></div>
+                <ol id="menu" class="menu" hidden></ol>
+                <div id="menu-idle" class="menu-idle"></div>
+            </div>
+        </section>
+    </main>
+
+    <main id="view-actions" class="view actions" hidden>
+        <div class="card key-card">
+            <div class="card-title">Presage API key</div>
+            <div id="key-status" class="key-status">Checking...</div>
+            <div class="key-row">
+                <input id="key-input" type="password" placeholder="Paste your SmartSpectra API key" autocomplete="off" spellcheck="false">
+                <button id="key-save" class="primary">Save key</button>
+                <button id="key-clear" class="danger">Remove saved key</button>
+            </div>
+            <p class="note">OnBlink needs your own free key. It is encrypted with your macOS Keychain and stored only on this computer. <a href="#" id="key-signup">Get a key from Presage</a></p>
+            <div id="key-msg" class="save-msg"></div>
+        </div>
+        <div class="card">
+            <div class="editor-head">
+                <div class="card-title">Menu items, in order</div>
+                <button id="btn-add">Add action</button>
+            </div>
+            <div id="action-list" class="action-list"></div>
+        </div>
+        <div class="card checkin-settings">
+            <div class="card-title">Input</div>
+            <label>Select with
+                <select id="input-mode">
+                    <option value="native">Double blink (SmartSpectra blink detection)</option>
+                    <option value="long">Long blink (OnBlink eye tracking)</option>
+                </select>
+            </label>
+            <label>Double blink spacing
+                <select id="blink-spacing">
+                    <option value="relaxed">Relaxed (second blink 0.4 to 1.5s after the first)</option>
+                    <option value="quick">Quick (second blink 0.3 to 0.8s after the first)</option>
+                </select>
+            </label>
+            <p class="note">Double blink uses the SDK's built-in blink detection: blink twice to open the menu, and twice again to pick. Long blink uses OnBlink's own eye tracking from face landmarks: close your eyes for about a second instead. Try long blink if double blinks are missed in your lighting or setup.</p>
+        </div>
+        <div class="card checkin-settings">
+            <div class="card-title">Check-ins</div>
+            <label><input type="checkbox" id="checkin-enabled"> Offer a check-in when my heart rate stays well above my level from earlier in the session</label>
+            <label>Sensitivity
+                <select id="checkin-sensitivity">
+                    <option value="gentle">Gentle (+20 bpm or 25%, for 60s)</option>
+                    <option value="normal">Normal (+15 bpm or 20%, for 45s)</option>
+                    <option value="sensitive">Sensitive (+10 bpm or 15%, for 30s)</option>
+                </select>
+            </label>
+            <p class="note">Your level is learned during the first minute of each session and kept in memory only. It is forgotten when the session stops. Check-ins pause while you are moving and appear at most once every 10 minutes.</p>
+        </div>
+        <div class="card settings">
+            <label>Menu speed
+                <input id="step" type="range" min="800" max="5000" step="100">
+                <span id="step-val"></span>
+            </label>
+            <label>Voice
+                <select id="voice"><option value="">System default</option></select>
+            </label>
+        </div>
+        <div class="card checkin-settings">
+            <div class="card-title">Read options aloud</div>
+            <label><input type="checkbox" id="read-aloud"> Say each menu option as it is highlighted</label>
+            <label>Play options through
+                <select id="cue-device"><option value="">Same output as phrases</option></select>
+            </label>
+            <label>Option volume
+                <input id="cue-volume" type="range" min="0.05" max="1" step="0.05">
+                <span id="cue-volume-val"></span>
+                <button id="cue-test" class="link-btn">Test</button>
+            </label>
+            <p class="note">Options are only a guide for the person using OnBlink, so keep them quiet, or send them to headphones or a single earbud. The phrase you pick is always spoken through the Mac's main output so people nearby can hear it.</p>
+        </div>
+        <div class="card checkin-settings">
+            <div class="card-title">Session</div>
+            <label>Stop automatically
+                <select id="auto-stop">
+                    <option value="0">Never</option>
+                    <option value="1">After 1 minute</option>
+                    <option value="2">After 2 minutes</option>
+                    <option value="5">After 5 minutes</option>
+                    <option value="15">After 15 minutes</option>
+                    <option value="30">After 30 minutes</option>
+                </select>
+            </label>
+            <p class="note">Leave this on Never for everyday use so OnBlink keeps listening. A time limit is handy for testing, demos, or keeping an eye on usage of a free Presage key.</p>
+            <div class="usage-row">
+                <span id="usage" class="usage">Camera time used on this computer: 0:00</span>
+                <button id="usage-reset" class="link-btn">Reset</button>
+            </div>
+        </div>
+        <div class="save-row">
+            <span id="save-msg" class="save-msg"></span>
+            <button id="btn-revert">Discard changes</button>
+            <button id="btn-save" class="primary">Save</button>
+        </div>
+    </main>
+
+    <dialog id="consent" class="consent">
+        <h2>Before you start</h2>
+        <p>OnBlink uses your camera to follow your eyes and estimate your heart rate. Here is exactly what happens:</p>
+        <ul>
+            <li><strong>Camera:</strong> on only after you press Start, and stays on until you press Stop, or until the optional time limit in Settings.</li>
+            <li><strong>Processing:</strong> video frames are analyzed by the SmartSpectra SDK from Presage Technologies. Presage's documentation says vitals are computed on this device. The SDK also makes authenticated requests to Presage's servers, for example to check the API key and usage.</li>
+            <li><strong>Presage telemetry:</strong> turned off in OnBlink. Presage says that when it is off, the SDK sends no telemetry. Even when on, Presage says it never includes video, measured values, or identifiers.</li>
+            <li><strong>What OnBlink saves:</strong> only your menu items and settings, on this computer. No video, eye data, or heart rate is ever saved or sent anywhere by OnBlink.</li>
+            <li><strong>Check-ins (optional):</strong> if you turn them on, OnBlink compares your heart rate to your own level from earlier in the same session and may offer to start a conversation. Nothing is said or sent unless you choose it.</li>
+        </ul>
+        <p class="disclaimer">OnBlink is not a medical device and does not diagnose, treat, or monitor any condition. Do not rely on it in an emergency.</p>
+        <label><input type="checkbox" id="consent-checkin"> Turn on check-ins</label>
+        <div class="consent-buttons">
+            <button id="consent-cancel">Not now</button>
+            <button id="consent-accept" class="primary">I understand, start</button>
+        </div>
+    </dialog>
+
+    <dialog id="tour" class="tour">
+        <div class="tour-progress"><div id="tour-bar"></div></div>
+        <div class="tour-step-label" id="tour-step-label"></div>
+        <h2 id="tour-title"></h2>
+        <div id="tour-body" class="tour-body" tabindex="-1"></div>
+        <div class="tour-buttons">
+            <button id="tour-skip" class="link-btn">Skip tutorial</button>
+            <span class="spacer"></span>
+            <button id="tour-back">Back</button>
+            <button id="tour-next" class="primary">Next</button>
+        </div>
+    </dialog>
+
+    <script src="./dist/renderer.bundle.js"></script>
+</body>
+</html>
